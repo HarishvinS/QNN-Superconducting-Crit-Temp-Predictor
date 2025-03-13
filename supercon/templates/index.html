@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Quantum Neural Network Predictor</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 1200px;
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+        .feature-group {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .feature-group h3 {
+            margin-bottom: 15px;
+            color: #0d6efd;
+        }
+        .feature-row {
+            margin-bottom: 10px;
+        }
+        .feature-input {
+            width: 120px;
+        }
+        .tooltip-icon {
+            color: #0d6efd;
+            cursor: help;
+        }
+        .example-value {
+            color: #6c757d;
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mb-4">Quantum Neural Network Predictor</h1>
+        <p class="lead">Predict superconductor critical temperature using material properties.</p>
+        
+        <div class="mb-3">
+            <button type="button" class="btn btn-primary" id="generateAllRandom">Generate All Random Values</button>
+            <button type="button" class="btn btn-secondary" id="clearAll">Clear All</button>
+        </div>
+
+        <form id="predictionForm">
+            <!-- Feature groups will be dynamically inserted here -->
+            <div id="featureGroups"></div>
+            
+            <button type="submit" class="btn btn-success mt-3">Predict Critical Temperature</button>
+        </form>
+        
+        <div id="result" class="result alert alert-success">
+            <h4>Prediction Result:</h4>
+            <p id="prediction"></p>
+        </div>
+        
+        <div id="error" class="result alert alert-danger">
+            <h4>Error:</h4>
+            <p id="errorMessage"></p>
+        </div>
+    </div>
+
+    <script>
+        // Feature definitions with metadata
+        const featureGroups = {
+            'Atomic Mass Properties': {
+                description: 'Properties related to the atomic mass of the constituent elements',
+                features: {
+                    'number_of_elements': { min: 1, max: 9, mean: 4.12, example: 4 },
+                    'mean_atomic_mass': { min: 6.94, max: 209.0, mean: 87.56, example: 85.5 },
+                    'wtd_mean_atomic_mass': { min: 6.42, max: 209.0, mean: 73.0, example: 75.2 },
+                    'gmean_atomic_mass': { min: 5.32, max: 209.0, mean: 71.29, example: 70.8 },
+                    'wtd_gmean_atomic_mass': { min: 1.96, max: 209.0, mean: 58.54, example: 60.1 },
+                    'entropy_atomic_mass': { min: 0, max: 1.98, mean: 1.17, example: 1.15 },
+                    'wtd_entropy_atomic_mass': { min: 0, max: 1.96, mean: 1.06, example: 1.05 },
+                    'range_atomic_mass': { min: 0, max: 208.0, mean: 115.60, example: 115.0 },
+                    'wtd_range_atomic_mass': { min: 0, max: 205.59, mean: 33.23, example: 33.0 },
+                    'std_atomic_mass': { min: 0, max: 101.02, mean: 44.39, example: 44.0 },
+                    'wtd_std_atomic_mass': { min: 0, max: 101.02, mean: 41.45, example: 41.0 }
+                }
+            },
+            'First Ionization Energy': {
+                description: 'Properties related to the first ionization energy of the elements',
+                features: {
+                    'mean_fie': { min: 375.5, max: 1313.1, mean: 769.61, example: 770.0 },
+                    'wtd_mean_fie': { min: 375.5, max: 1348.0, mean: 870.44, example: 870.0 },
+                    'gmean_fie': { min: 375.5, max: 1313.1, mean: 737.47, example: 737.0 },
+                    'wtd_gmean_fie': { min: 375.5, max: 1327.6, mean: 832.77, example: 833.0 },
+                    'entropy_fie': { min: 0, max: 2.16, mean: 1.30, example: 1.30 },
+                    'wtd_entropy_fie': { min: 0, max: 2.04, mean: 0.93, example: 0.93 },
+                    'range_fie': { min: 0, max: 1304.5, mean: 572.22, example: 572.0 },
+                    'wtd_range_fie': { min: 0, max: 1251.86, mean: 483.52, example: 483.0 },
+                    'std_fie': { min: 0, max: 499.67, mean: 215.63, example: 215.0 },
+                    'wtd_std_fie': { min: 0, max: 479.16, mean: 224.05, example: 224.0 }
+                }
+            },
+            'Atomic Radius': {
+                description: 'Properties related to the atomic radius of the elements',
+                features: {
+                    'mean_atomic_radius': { min: 48.0, max: 298.0, mean: 158.0, example: 158.0 },
+                    'wtd_mean_atomic_radius': { min: 48.0, max: 298.0, mean: 134.72, example: 135.0 },
+                    'gmean_atomic_radius': { min: 48.0, max: 298.0, mean: 144.45, example: 144.0 },
+                    'wtd_gmean_atomic_radius': { min: 48.0, max: 298.0, mean: 121.0, example: 121.0 },
+                    'entropy_atomic_radius': { min: 0, max: 2.14, mean: 1.27, example: 1.27 },
+                    'wtd_entropy_atomic_radius': { min: 0, max: 1.90, mean: 1.13, example: 1.13 },
+                    'range_atomic_radius': { min: 0, max: 256.0, mean: 139.33, example: 139.0 },
+                    'wtd_range_atomic_radius': { min: 0, max: 240.16, mean: 51.37, example: 51.0 },
+                    'std_atomic_radius': { min: 0, max: 115.5, mean: 51.60, example: 51.6 },
+                    'wtd_std_atomic_radius': { min: 0, max: 97.14, mean: 52.34, example: 52.3 }
+                }
+            },
+            'Density': {
+                description: 'Properties related to the density of the elements',
+                features: {
+                    'mean_Density': { min: 1.43, max: 22590.0, mean: 6111.47, example: 6000.0 },
+                    'wtd_mean_Density': { min: 1.43, max: 22590.0, mean: 5267.19, example: 5200.0 },
+                    'gmean_Density': { min: 1.43, max: 22590.0, mean: 3460.69, example: 3400.0 },
+                    'wtd_gmean_Density': { min: 0.69, max: 22590.0, mean: 3117.24, example: 3100.0 },
+                    'entropy_Density': { min: 0, max: 1.95, mean: 1.07, example: 1.07 },
+                    'wtd_entropy_Density': { min: 0, max: 1.70, mean: 0.86, example: 0.86 },
+                    'range_Density': { min: 0, max: 22588.57, mean: 8665.44, example: 8600.0 },
+                    'wtd_range_Density': { min: 0, max: 22434.16, mean: 2902.74, example: 2900.0 },
+                    'std_Density': { min: 0, max: 10724.37, mean: 3416.91, example: 3400.0 },
+                    'wtd_std_Density': { min: 0, max: 10410.93, mean: 3319.17, example: 3300.0 }
+                }
+            },
+            'Electron Affinity': {
+                description: 'Properties related to the electron affinity of the elements',
+                features: {
+                    'mean_ElectronAffinity': { min: 1.5, max: 326.1, mean: 100.0, example: 100.0 },
+                    'wtd_mean_ElectronAffinity': { min: 1.5, max: 326.1, mean: 120.0, example: 120.0 },
+                    'gmean_ElectronAffinity': { min: 1.5, max: 326.1, mean: 90.0, example: 90.0 },
+                    'wtd_gmean_ElectronAffinity': { min: 1.5, max: 326.1, mean: 110.0, example: 110.0 },
+                    'entropy_ElectronAffinity': { min: 0, max: 2.0, mean: 1.2, example: 1.2 },
+                    'wtd_entropy_ElectronAffinity': { min: 0, max: 2.0, mean: 1.0, example: 1.0 },
+                    'range_ElectronAffinity': { min: 0, max: 324.6, mean: 150.0, example: 150.0 },
+                    'wtd_range_ElectronAffinity': { min: 0, max: 324.6, mean: 130.0, example: 130.0 },
+                    'std_ElectronAffinity': { min: 0, max: 150.0, mean: 60.0, example: 60.0 },
+                    'wtd_std_ElectronAffinity': { min: 0, max: 150.0, mean: 65.0, example: 65.0 }
+                }
+            },
+            'Fusion Heat': {
+                description: 'Properties related to the fusion heat of the elements',
+                features: {
+                    'mean_FusionHeat': { min: 0.5, max: 500.0, mean: 100.0, example: 100.0 },
+                    'wtd_mean_FusionHeat': { min: 0.5, max: 500.0, mean: 120.0, example: 120.0 },
+                    'gmean_FusionHeat': { min: 0.5, max: 500.0, mean: 90.0, example: 90.0 },
+                    'wtd_gmean_FusionHeat': { min: 0.5, max: 500.0, mean: 110.0, example: 110.0 },
+                    'entropy_FusionHeat': { min: 0, max: 2.0, mean: 1.2, example: 1.2 },
+                    'wtd_entropy_FusionHeat': { min: 0, max: 2.0, mean: 1.0, example: 1.0 },
+                    'range_FusionHeat': { min: 0, max: 499.5, mean: 200.0, example: 200.0 },
+                    'wtd_range_FusionHeat': { min: 0, max: 499.5, mean: 180.0, example: 180.0 },
+                    'std_FusionHeat': { min: 0, max: 200.0, mean: 80.0, example: 80.0 },
+                    'wtd_std_FusionHeat': { min: 0, max: 200.0, mean: 85.0, example: 85.0 }
+                }
+            },
+            'Thermal Conductivity': {
+                description: 'Properties related to the thermal conductivity of the elements',
+                features: {
+                    'mean_ThermalConductivity': { min: 0.1, max: 500.0, mean: 100.0, example: 100.0 },
+                    'wtd_mean_ThermalConductivity': { min: 0.1, max: 500.0, mean: 120.0, example: 120.0 },
+                    'gmean_ThermalConductivity': { min: 0.1, max: 500.0, mean: 90.0, example: 90.0 },
+                    'wtd_gmean_ThermalConductivity': { min: 0.1, max: 500.0, mean: 110.0, example: 110.0 },
+                    'entropy_ThermalConductivity': { min: 0, max: 2.0, mean: 1.2, example: 1.2 },
+                    'wtd_entropy_ThermalConductivity': { min: 0, max: 2.0, mean: 1.0, example: 1.0 },
+                    'range_ThermalConductivity': { min: 0, max: 499.9, mean: 200.0, example: 200.0 },
+                    'wtd_range_ThermalConductivity': { min: 0, max: 499.9, mean: 180.0, example: 180.0 },
+                    'std_ThermalConductivity': { min: 0, max: 200.0, mean: 80.0, example: 80.0 },
+                    'wtd_std_ThermalConductivity': { min: 0, max: 200.0, mean: 85.0, example: 85.0 }
+                }
+            },
+            'Valence': {
+                description: 'Properties related to the valence of the elements',
+                features: {
+                    'mean_Valence': { min: 1.0, max: 8.0, mean: 3.5, example: 3.5 },
+                    'wtd_mean_Valence': { min: 1.0, max: 8.0, mean: 4.0, example: 4.0 },
+                    'gmean_Valence': { min: 1.0, max: 8.0, mean: 3.3, example: 3.3 },
+                    'wtd_gmean_Valence': { min: 1.0, max: 8.0, mean: 3.8, example: 3.8 },
+                    'entropy_Valence': { min: 0, max: 2.0, mean: 1.2, example: 1.2 },
+                    'wtd_entropy_Valence': { min: 0, max: 2.0, mean: 1.0, example: 1.0 },
+                    'range_Valence': { min: 0, max: 7.0, mean: 3.0, example: 3.0 },
+                    'wtd_range_Valence': { min: 0, max: 7.0, mean: 2.5, example: 2.5 },
+                    'std_Valence': { min: 0, max: 3.0, mean: 1.2, example: 1.2 },
+                    'wtd_std_Valence': { min: 0, max: 3.0, mean: 1.1, example: 1.1 }
+                }
+            }
+        };
+
+        // Function to generate a random value within a reasonable range
+        function generateRandomValue(min, max, mean) {
+            // Generate a value with higher probability around the mean
+            const stdDev = (max - min) / 6;
+            let value;
+            do {
+                value = mean + (Math.random() - 0.5) * stdDev * 4;
+            } while (value < min || value > max);
+            return parseFloat(value.toFixed(4));
+        }
+
+        // Function to create the feature input groups
+        function createFeatureGroups() {
+            const container = document.getElementById('featureGroups');
+            
+            // Define tooltip descriptions for each feature type
+            const tooltipDescriptions = {
+                'number_of_elements': 'Total number of different elements in the compound',
+                'mean_atomic_mass': 'Average atomic mass of all elements',
+                'wtd_mean_atomic_mass': 'Weighted average atomic mass based on element proportions',
+                'gmean_atomic_mass': 'Geometric mean of atomic masses',
+                'wtd_gmean_atomic_mass': 'Weighted geometric mean of atomic masses based on proportions',
+                'entropy_atomic_mass': 'Measure of atomic mass distribution variability (0-2)',
+                'wtd_entropy_atomic_mass': 'Weighted entropy of atomic mass distribution',
+                'range_atomic_mass': 'Difference between highest and lowest atomic mass',
+                'wtd_range_atomic_mass': 'Weighted range of atomic masses',
+                'std_atomic_mass': 'Standard deviation of atomic masses',
+                'wtd_std_atomic_mass': 'Weighted standard deviation of atomic masses',
+
+                'mean_fie': 'Average first ionization energy',
+                'wtd_mean_fie': 'Weighted average first ionization energy',
+                'gmean_fie': 'Geometric mean of first ionization energies',
+                'wtd_gmean_fie': 'Weighted geometric mean of first ionization energies',
+                'entropy_fie': 'Entropy of first ionization energy distribution',
+                'wtd_entropy_fie': 'Weighted entropy of first ionization energies',
+                'range_fie': 'Range of first ionization energies',
+                'wtd_range_fie': 'Weighted range of first ionization energies',
+                'std_fie': 'Standard deviation of first ionization energies',
+                'wtd_std_fie': 'Weighted standard deviation of first ionization energies',
+
+                'mean_atomic_radius': 'Average atomic radius in picometers',
+                'wtd_mean_atomic_radius': 'Weighted average atomic radius',
+                'gmean_atomic_radius': 'Geometric mean of atomic radii',
+                'wtd_gmean_atomic_radius': 'Weighted geometric mean of atomic radii',
+                'entropy_atomic_radius': 'Entropy of atomic radius distribution',
+                'wtd_entropy_atomic_radius': 'Weighted entropy of atomic radii',
+                'range_atomic_radius': 'Difference between largest and smallest atomic radius',
+                'wtd_range_atomic_radius': 'Weighted range of atomic radii',
+                'std_atomic_radius': 'Standard deviation of atomic radii',
+                'wtd_std_atomic_radius': 'Weighted standard deviation of atomic radii',
+
+                'mean_Density': 'Average density in kg/m³',
+                'wtd_mean_Density': 'Weighted average density',
+                'gmean_Density': 'Geometric mean of densities',
+                'wtd_gmean_Density': 'Weighted geometric mean of densities',
+                'entropy_Density': 'Entropy of density distribution',
+                'wtd_entropy_Density': 'Weighted entropy of densities',
+                'range_Density': 'Range of densities',
+                'wtd_range_Density': 'Weighted range of densities',
+                'std_Density': 'Standard deviation of densities',
+                'wtd_std_Density': 'Weighted standard deviation of densities',
+
+                'mean_ElectronAffinity': 'Average electron affinity in kJ/mol',
+                'wtd_mean_ElectronAffinity': 'Weighted average electron affinity',
+                'gmean_ElectronAffinity': 'Geometric mean of electron affinities',
+                'wtd_gmean_ElectronAffinity': 'Weighted geometric mean of electron affinities',
+                'entropy_ElectronAffinity': 'Entropy of electron affinity distribution',
+                'wtd_entropy_ElectronAffinity': 'Weighted entropy of electron affinities',
+                'range_ElectronAffinity': 'Range of electron affinities',
+                'wtd_range_ElectronAffinity': 'Weighted range of electron affinities',
+                'std_ElectronAffinity': 'Standard deviation of electron affinities',
+                'wtd_std_ElectronAffinity': 'Weighted standard deviation of electron affinities',
+
+                'mean_FusionHeat': 'Average heat of fusion in kJ/mol',
+                'wtd_mean_FusionHeat': 'Weighted average heat of fusion',
+                'gmean_FusionHeat': 'Geometric mean of fusion heats',
+                'wtd_gmean_FusionHeat': 'Weighted geometric mean of fusion heats',
+                'entropy_FusionHeat': 'Entropy of fusion heat distribution',
+                'wtd_entropy_FusionHeat': 'Weighted entropy of fusion heats',
+                'range_FusionHeat': 'Range of fusion heats',
+                'wtd_range_FusionHeat': 'Weighted range of fusion heats',
+                'std_FusionHeat': 'Standard deviation of fusion heats',
+                'wtd_std_FusionHeat': 'Weighted standard deviation of fusion heats',
+
+                'mean_ThermalConductivity': 'Average thermal conductivity in W/(m·K)',
+                'wtd_mean_ThermalConductivity': 'Weighted average thermal conductivity',
+                'gmean_ThermalConductivity': 'Geometric mean of thermal conductivities',
+                'wtd_gmean_ThermalConductivity': 'Weighted geometric mean of thermal conductivities',
+                'entropy_ThermalConductivity': 'Entropy of thermal conductivity distribution',
+                'wtd_entropy_ThermalConductivity': 'Weighted entropy of thermal conductivities',
+                'range_ThermalConductivity': 'Range of thermal conductivities',
+                'wtd_range_ThermalConductivity': 'Weighted range of thermal conductivities',
+                'std_ThermalConductivity': 'Standard deviation of thermal conductivities',
+                'wtd_std_ThermalConductivity': 'Weighted standard deviation of thermal conductivities',
+
+                'mean_Valence': 'Average valence electron count',
+                'wtd_mean_Valence': 'Weighted average valence electron count',
+                'gmean_Valence': 'Geometric mean of valence electrons',
+                'wtd_gmean_Valence': 'Weighted geometric mean of valence electrons',
+                'entropy_Valence': 'Entropy of valence electron distribution',
+                'wtd_entropy_Valence': 'Weighted entropy of valence electrons',
+                'range_Valence': 'Range of valence electron counts',
+                'wtd_range_Valence': 'Weighted range of valence electrons',
+                'std_Valence': 'Standard deviation of valence electrons',
+                'wtd_std_Valence': 'Weighted standard deviation of valence electrons'
+            };
+            
+            for (const [groupName, group] of Object.entries(featureGroups)) {
+                const groupDiv = document.createElement('div');
+                groupDiv.className = 'feature-group';
+                
+                groupDiv.innerHTML = `
+                    <h3>${groupName}</h3>
+                    <p class="text-muted">${group.description}</p>
+                    <div class="row">
+                        ${Object.entries(group.features).map(([featureName, meta]) => `
+                            <div class="col-md-6 col-lg-4 feature-row">
+                                <div class="input-group">
+                                    <span class="input-group-text" title="${tooltipDescriptions[featureName]}">
+                                        <i class="tooltip-icon">ℹ️</i>
+                                    </span>
+                                    <input type="number" 
+                                           class="form-control feature-input" 
+                                           id="${featureName}"
+                                           name="${featureName}"
+                                           step="0.0001"
+                                           required
+                                           placeholder="${meta.example}"
+                                           min="${meta.min}"
+                                           max="${meta.max}">
+                                    <button type="button" class="btn btn-outline-secondary" 
+                                            onclick="document.getElementById('${featureName}').value=${meta.example}">
+                                        Example
+                                    </button>
+                                </div>
+                                <small class="text-muted">${featureName}</small>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                
+                container.appendChild(groupDiv);
+            }
+        }
+
+        // Create the feature groups when the page loads
+        createFeatureGroups();
+
+        // Generate random values for all features
+        document.getElementById('generateAllRandom').addEventListener('click', () => {
+            for (const group of Object.values(featureGroups)) {
+                for (const [featureName, meta] of Object.entries(group.features)) {
+                    const input = document.getElementById(featureName);
+                    input.value = generateRandomValue(meta.min, meta.max, meta.mean);
+                }
+            }
+        });
+
+        // Clear all inputs
+        document.getElementById('clearAll').addEventListener('click', () => {
+            document.querySelectorAll('.feature-input').forEach(input => {
+                input.value = '';
+            });
+        });
+
+        // Handle form submission
+        document.getElementById('predictionForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const features = [];
+            for (const group of Object.values(featureGroups)) {
+                for (const featureName of Object.keys(group.features)) {
+                    features.push(parseFloat(document.getElementById(featureName).value));
+                }
+            }
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ features: features })
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                document.getElementById('result').style.display = 'block';
+                document.getElementById('prediction').textContent = 
+                    `Predicted Critical Temperature: ${data.prediction.toFixed(2)}K`;
+                document.getElementById('error').style.display = 'none';
+            } catch (error) {
+                document.getElementById('error').style.display = 'block';
+                document.getElementById('errorMessage').textContent = error.message;
+                document.getElementById('result').style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html> 
