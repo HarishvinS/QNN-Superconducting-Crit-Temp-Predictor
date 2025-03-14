@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify, render_template
 import numpy as np
-from supercon_run import load_model_and_predict
+from .supercon_run import load_model_and_predict
 
 app = Flask(__name__)
 
