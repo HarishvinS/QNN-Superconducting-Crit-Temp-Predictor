@@ -65,7 +65,17 @@ def save_model(model, scaler_X, scaler_y, input_size, n_qubits, filename="traine
     }
     torch.save(checkpoint, filename)
 
-def load_model_and_predict(input_data, weights_path="trained_model_weights.pth"):
+import os
+
+def load_model_and_predict(input_data, weights_path=None):
+    if weights_path is None:
+        # Get the directory of the current file
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        # Construct an absolute path to the weights file
+        weights_path = os.path.join(base_dir, "trained_model_weights.pth")
+    # Now use weights_path to load the model...
+    # load_model(weights_path)
+
     try:
         # Load saved model and scalers
         checkpoint = torch.load(weights_path, weights_only=False)
