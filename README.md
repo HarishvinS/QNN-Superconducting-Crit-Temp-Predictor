@@ -2,7 +2,7 @@
 
 
 ## Overview
-**QNN-Supercon-Predictor** is a Quantum Neural Network (QNN) model designed to predict superconducting materials' properties. The project explores the intersection of Quantum Computing and Material Science, leveraging quantum machine learning techniques to optimize material discovery for superconducting qubits.
+This is a Quantum Neural Network (QNN) model designed to predict superconducting materials' properties. The project explores the intersection of Quantum Computing and Material Science, leveraging quantum machine learning techniques to optimize material discovery for superconducting qubits.
 
 ## Features
 - Implements a **Quantum Neural Network (QNN)** to predict superconducting material properties.
